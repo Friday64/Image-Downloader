@@ -63,6 +63,8 @@ def start_download():
 def download_images(queue, number_of_images):
     global folder_selected, serial_number
 
+    serial_number = get_starting_serial_number()
+
     images_per_page = 500
     pages_needed = (number_of_images + images_per_page - 1) // images_per_page
 
@@ -105,6 +107,25 @@ def check_queue(queue):
             num_images_label.config(text="")
     except Empty:
         root.after(100, check_queue, queue)
+
+def get_starting_serial_number():
+    global folder_selected
+    url_file_path = os.path.join(folder_selected, 'image_urls.txt')
+    last_serial_number = 0
+
+    if os.path.exists(url_file_path):
+        with open(url_file_path, 'r') as url_file:
+            lines = url_file.readlines()
+            if lines:
+                last_line = lines[-1]
+                try:
+                    last_serial_number = int(last_line.split(",")[0].split(":")[1].strip())
+                except ValueError:
+                    pass
+
+    return last_serial_number + 1
+
+
 
 root = tk.Tk()
 root.title('Cat Images Downloader')
