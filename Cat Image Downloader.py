@@ -61,8 +61,8 @@ def start_download():
 def download_images(queue, number_of_images):
     global folder_selected, serial_number
 
-    photos = flickr.photos.search(text='cat', license='1,2,3,4,5,6', per_page=str(number_of_images), page=1)
-    total_images = len(photos['photos']['photo'])
+    images_per_page = 500  # Max number of images per request
+    pages = (number_of_images + images_per_page - 1) // images_per_page
 
     if folder_selected:
         with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
@@ -113,6 +113,9 @@ select_button.pack(pady=10)
 
 images_entry = tk.Entry(root)
 images_entry.pack(pady=10)
+
+num_images_label = tk.Label(root, text="")
+num_images_label.pack()
 
 download_button = tk.Button(root, text="Start Download", command=start_download)
 download_button.pack(pady=10)
