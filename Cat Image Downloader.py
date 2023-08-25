@@ -60,6 +60,8 @@ def start_download():
     thread = threading.Thread(target=download_images, args=(queue, number_of_images))
     thread.start()
 
+# ... other code ...
+
 def download_images(queue, number_of_images):
     global folder_selected, serial_number
 
@@ -67,13 +69,15 @@ def download_images(queue, number_of_images):
 
     images_per_page = 500
     pages_needed = (number_of_images + images_per_page - 1) // images_per_page
+    remaining_images = number_of_images
 
     if folder_selected:
         for page in range(pages_needed):
+            images_to_fetch = min(remaining_images, images_per_page)
             photos = flickr.photos.search(
                 text='cat',
                 license='1,2,3,4,5,6',
-                per_page=str(images_per_page),
+                per_page=str(images_to_fetch),
                 page=page + 1
             )
             total_images = len(photos['photos']['photo'])
@@ -89,10 +93,13 @@ def download_images(queue, number_of_images):
                         file.write(response.content)
                         serial_number += 1
 
-                    queue.put(pages_needed * images_per_page - (page * images_per_page + i + 1))
+                    queue.put(number_of_images - (page * images_per_page + i + 1))
+                    remaining_images -= 1
 
         logger.info("Download finished!")
         queue.put(-1)
+
+# ... rest of the code ...
 
 def check_queue(queue):
     try:
