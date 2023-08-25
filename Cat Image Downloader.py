@@ -60,7 +60,6 @@ def start_download():
     thread = threading.Thread(target=download_images, args=(queue, number_of_images))
     thread.start()
 
-# ... other code ...
 
 def download_images(queue, number_of_images):
     global folder_selected, serial_number
@@ -99,7 +98,7 @@ def download_images(queue, number_of_images):
         logger.info("Download finished!")
         queue.put(-1)
 
-# ... rest of the code ...
+
 
 def check_queue(queue):
     try:
