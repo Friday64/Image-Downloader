@@ -5,9 +5,9 @@ import requests
 import logging
 import tkinter as tk
 from tkinter import filedialog
+import tkinter.messagebox as messagebox
 from queue import Queue, Empty
 from dotenv import load_dotenv as ld_dotenv
-
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -39,14 +39,14 @@ def start_download():
     global folder_selected
 
     if not folder_selected:
-        tk.messagebox.showinfo("Error", "Please select a folder for downloads.")
+        messagebox.showinfo("Error", "Please select a folder for downloads.")
         return
 
     number_of_images = images_entry.get()
     try:
         number_of_images = int(number_of_images)
     except ValueError:
-        tk.messagebox.showinfo("Error", "Please enter a valid number for images.")
+        messagebox.showinfo("Error", "Please enter a valid number for images.")
         return
 
     select_button.config(state=tk.DISABLED)
@@ -70,7 +70,7 @@ def download_images(queue, number_of_images):
                 url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
                 response = requests.get(url)
 
-                url_file.write(f"Serial Number: {serial_number}, URL: {url}\n")
+                url_file.write(f"Serial Number: {serial_number + 1}, URL: {url}\n")
 
                 with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
                     file.write(response.content)
