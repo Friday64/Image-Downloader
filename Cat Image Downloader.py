@@ -65,10 +65,21 @@ def download_images(queue, number_of_images):
     total_images = len(photos['photos']['photo'])
 
     if folder_selected:
-        with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:  # Change 'w' to 'a'
+        with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
             for i, photo in enumerate(photos['photos']['photo']):
                 url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
-                response = requests.get(url)
+                
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        response = requests.get(url)
+                        response.raise_for_status() # Check for HTTP errors
+                        break # Exit loop if request is successful
+                    except requests.RequestException as e:
+                        logger.warning(f"Failed to download {url}, attempt {attempt + 1}/{max_retries}: {e}")
+                        if attempt == max_retries - 1:
+                            logger.error(f"Failed to download {url} after {max_retries} attempts")
+                            continue # Skip this image if all retries failed
 
                 url_file.write(f"Serial Number: {serial_number + 1}, URL: {url}\n")
 
