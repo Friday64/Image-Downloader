@@ -5,7 +5,6 @@ import requests
 import logging
 import tkinter as tk
 from tkinter import filedialog
-import tkinter.messagebox
 from queue import Queue, Empty
 from dotenv import load_dotenv as ld_dotenv
 
