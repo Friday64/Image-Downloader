@@ -65,7 +65,7 @@ def download_images(queue, number_of_images):
     total_images = len(photos['photos']['photo'])
 
     if folder_selected:
-        with open(os.path.join(folder_selected, 'image_urls.txt'), 'w') as url_file:
+        with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:  # Change 'w' to 'a'
             for i, photo in enumerate(photos['photos']['photo']):
                 url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
                 response = requests.get(url)
