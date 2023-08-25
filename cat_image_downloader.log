@@ -10,3 +10,8 @@
 2023-08-25 07:45:40,538:WARNING: Failed to download https://farm0.staticflickr.com/0/53074818167_5577854d37.jpg, attempt 3/3: HTTPSConnectionPool(host='farm0.staticflickr.com', port=443): Max retries exceeded with url: /0/53074818167_5577854d37.jpg (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001E5420BBF48>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))
 2023-08-25 07:45:40,538:ERROR: Failed to download https://farm0.staticflickr.com/0/53074818167_5577854d37.jpg after 3 attempts
 2023-08-25 07:47:44,191:INFO: Download finished!
+2023-08-25 08:04:20,633:INFO: Download finished!
+2023-08-25 08:04:34,063:INFO: Download finished!
+2023-08-25 08:04:55,322:INFO: Download finished!
+2023-08-25 08:05:10,924:INFO: Download finished!
+2023-08-25 08:05:26,699:INFO: Download finished!

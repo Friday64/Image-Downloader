@@ -49,6 +49,8 @@ def start_download():
         messagebox.showinfo("Error", "Please enter a valid number for images.")
         return
 
+    num_images_label.config(text=f"Number of Images to Download: {number_of_images}")
+
     select_button.config(state=tk.DISABLED)
     download_button.config(state=tk.DISABLED)
 
@@ -61,36 +63,34 @@ def start_download():
 def download_images(queue, number_of_images):
     global folder_selected, serial_number
 
-    images_per_page = 500  # Max number of images per request
-    pages = (number_of_images + images_per_page - 1) // images_per_page
+    images_per_page = 500
+    pages_needed = (number_of_images + images_per_page - 1) // images_per_page
 
     if folder_selected:
-        with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
-            for i, photo in enumerate(photos['photos']['photo']):
-                url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
-                
-                max_retries = 3
-                for attempt in range(max_retries):
-                    try:
-                        response = requests.get(url)
-                        response.raise_for_status() # Check for HTTP errors
-                        break # Exit loop if request is successful
-                    except requests.RequestException as e:
-                        logger.warning(f"Failed to download {url}, attempt {attempt + 1}/{max_retries}: {e}")
-                        if attempt == max_retries - 1:
-                            logger.error(f"Failed to download {url} after {max_retries} attempts")
-                            continue # Skip this image if all retries failed
+        for page in range(pages_needed):
+            photos = flickr.photos.search(
+                text='cat',
+                license='1,2,3,4,5,6',
+                per_page=str(images_per_page),
+                page=page + 1
+            )
+            total_images = len(photos['photos']['photo'])
 
-                url_file.write(f"Serial Number: {serial_number + 1}, URL: {url}\n")
+            with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
+                for i, photo in enumerate(photos['photos']['photo']):
+                    url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
+                    response = requests.get(url)
 
-                with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
-                    file.write(response.content)
-                    serial_number += 1
+                    url_file.write(f"Serial Number: {serial_number}, URL: {url}\n")
 
-                queue.put(total_images - (i + 1))
+                    with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
+                        file.write(response.content)
+                        serial_number += 1
 
-            logger.info("Download finished!")
-            queue.put(-1)
+                    queue.put(pages_needed * images_per_page - (page * images_per_page + i + 1))
+
+        logger.info("Download finished!")
+        queue.put(-1)
 
 def check_queue(queue):
     try:
@@ -102,6 +102,7 @@ def check_queue(queue):
             countdown_label.config(text="")
             select_button.config(state=tk.NORMAL)
             download_button.config(state=tk.NORMAL)
+            num_images_label.config(text="")
     except Empty:
         root.after(100, check_queue, queue)
 
@@ -112,7 +113,7 @@ select_button = tk.Button(root, text="Select Folder", command=select_folder)
 select_button.pack(pady=10)
 
 images_entry = tk.Entry(root)
-images_entry.pack(pady=10)
+images_entry.pack(pady=5)
 
 num_images_label = tk.Label(root, text="")
 num_images_label.pack()
