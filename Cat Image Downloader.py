@@ -4,7 +4,6 @@ import flickrapi
 import requests
 import logging
 import tkinter as tk
-from tkinter import ttk
 from tkinter import filedialog
 import tkinter.messagebox
 from queue import Queue, Empty
