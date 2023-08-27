@@ -27,41 +27,16 @@ API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
 
 # Create an instance of the flickrapi module
 flickr = flickrapi.FlickrAPI(FLICKR_API_KEY, API_SECRET, format='parsed-json')
-
 serial_number = 0  # Initialize a global serial number counter
 folder_selected = ""  # Store the selected folder path
+queue = Queue()  # Define queue at a global scope
+
 
 def select_folder():
     global folder_selected
     folder_selected = filedialog.askdirectory()
 
 def start_download():
-    global folder_selected
-
-    if not folder_selected:
-        messagebox.showinfo("Error", "Please select a folder for downloads.")
-        return
-
-    number_of_images = images_entry.get()
-    try:
-        number_of_images = int(number_of_images)
-    except ValueError:
-        messagebox.showinfo("Error", "Please enter a valid number for images.")
-        return
-
-    num_images_label.config(text=f"Number of Images to Download: {number_of_images}")
-
-    select_button.config(state=tk.DISABLED)
-    download_button.config(state=tk.DISABLED)
-
-    queue = Queue()
-    root.after(100, check_queue, queue)
-
-    thread = threading.Thread(target=download_images, args=(queue, number_of_images))
-    thread.start()
-
-
-def download_images(queue, number_of_images):
     global folder_selected, serial_number
 
     serial_number = get_starting_serial_number()
@@ -73,31 +48,48 @@ def download_images(queue, number_of_images):
     if folder_selected:
         for page in range(pages_needed):
             images_to_fetch = min(remaining_images, images_per_page)
-            photos = flickr.photos.search(
-                text='cat',
-                license='1,2,3,4,5,6',
-                per_page=str(images_to_fetch),
-                page=page + 1
-            )
+            number_of_images = images_entry.get()
+            try:
+                photos = flickr.photos.search(
+                    text='cat',
+                    license='1,2,3,4,5,6',
+                    per_page=str(images_to_fetch),
+                    page=page + 1
+                )
+            except FlickrError as e:
+                logger.error(f"Flickr API Error: {e}")
+                return
+
             total_images = len(photos['photos']['photo'])
 
             with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
                 for i, photo in enumerate(photos['photos']['photo']):
-                    url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
-                    response = requests.get(url)
+                    try:
+                        url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
+                        response = requests.get(url)
+                        if response.status_code != 200:
+                            logger.warning(f"Failed to download image from URL: {url}")
+                            continue
 
-                    url_file.write(f"Serial Number: {serial_number}, URL: {url}\n")
+                        url_file.write(f"Serial Number: {serial_number}, URL: {url}\n")
 
-                    with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
-                        file.write(response.content)
-                        serial_number += 1
+                        with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
+                            file.write(response.content)
+                            serial_number += 1
 
-                    queue.put(number_of_images - (page * images_per_page + i + 1))
-                    remaining_images -= 1
+                        queue.put(number_of_images - (page * images_per_page + i + 1))
+                        remaining_images -= 1
+
+                        if serial_number >= 100:  # Add download limit of 100 images
+                            logger.info("Download limit of 100 images reached.")
+                            queue.put(-1)
+                            return
+
+                    except requests.exceptions.RequestException as e:
+                        logger.error(f"Network Error: {e}")
 
         logger.info("Download finished!")
         queue.put(-1)
-
 
 
 def check_queue(queue):
