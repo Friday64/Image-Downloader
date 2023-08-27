@@ -41,10 +41,11 @@ def start_download():
 
     serial_number = get_starting_serial_number()
 
+    serial_number = get_starting_serial_number()
     images_per_page = 500
     pages_needed = (number_of_images + images_per_page - 1) // images_per_page
     remaining_images = number_of_images
-
+    
     if folder_selected:
         for page in range(pages_needed):
             images_to_fetch = min(remaining_images, images_per_page)
