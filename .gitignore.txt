@@ -1,1 +1,2 @@
 .env
+cat_image_downloader.log
