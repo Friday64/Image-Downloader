@@ -19,8 +19,8 @@ file_handler = logging.FileHandler('cat_image_downloader.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
 logger.addHandler(file_handler)
 
-# Load .env file containing Flickr API keys
-ld_dotenv(os.path.join(os.path.expanduser("~"), 'Desktop/.env'))
+#Path to Load .env file containing Flickr API keys
+ld_dotenv(os.path.join(os.path.expanduser("~"), './.env'))
 
 # Flickr API setup
 FLICKR_API_KEY = str(os.getenv('FLICKR_API_KEY'))
