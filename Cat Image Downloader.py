@@ -1,6 +1,7 @@
 import os
 import threading
 import flickrapi
+from flickrapi import FlickrAPI, FlickrError
 import requests
 import logging
 import tkinter as tk
