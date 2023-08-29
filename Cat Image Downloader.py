@@ -1,97 +1,117 @@
 import os
-import threading
+from tkinter import messagebox
 import flickrapi
 from flickrapi import FlickrAPI, FlickrError
 import requests
 import logging
 import tkinter as tk
 from tkinter import filedialog
-import tkinter.messagebox as messagebox
+import dotenv
+import queue
 from queue import Queue, Empty
-from dotenv import load_dotenv as ld_dotenv
+from dotenv import find_dotenv, load_dotenv
+
 
 # Set up logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Create a file handler
 file_handler = logging.FileHandler('cat_image_downloader.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
 logger.addHandler(file_handler)
 
-#Path to Load .env file containing Flickr API keys
-ld_dotenv(os.path.join(os.path.expanduser("~"), './.env'))
+# Find the .env file
+dotenv_path = find_dotenv()
+if dotenv_path is not None:
+    load_dotenv(dotenv_path)
+else:
+    logger.info("Could not find .env file")
 
 # Flickr API setup
 FLICKR_API_KEY = str(os.getenv('FLICKR_API_KEY'))
 API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
+logger.info(f"FLICKR_API_KEY: {FLICKR_API_KEY}")
+logger.info(f"API_SECRET: {API_SECRET}")
 
 # Create an instance of the flickrapi module
-flickr = flickrapi.FlickrAPI(FLICKR_API_KEY, API_SECRET, format='parsed-json')
-serial_number = 0  # Initialize a global serial number counter
-folder_selected = ""  # Store the selected folder path
-queue = Queue()  # Define queue at a global scope
+try:
+    flickr = flickrapi.FlickrAPI(FLICKR_API_KEY, API_SECRET, format='parsed-json')
+    logger.info("Successfully created flickr instance")
+except FlickrError as e:
+    logger.error(f"Flickr API Error: {e}")
+    print(f"Flickr API Error: {e}")
+
+serial_number = 0
+folder_selected = ""
+queue = Queue()
 
 
 def select_folder():
     global folder_selected
     folder_selected = filedialog.askdirectory()
 
+
 def start_download():
     global folder_selected, serial_number
 
-    serial_number = get_starting_serial_number()
+    if not folder_selected:
+        messagebox.showerror("Error", "Please select a folder.")
+        return
 
     serial_number = get_starting_serial_number()
+    number_of_images = int(images_entry.get())
+
     images_per_page = 500
     pages_needed = (number_of_images + images_per_page - 1) // images_per_page
     remaining_images = number_of_images
-    
-    if folder_selected:
-        for page in range(pages_needed):
-            images_to_fetch = min(remaining_images, images_per_page)
-            number_of_images = images_entry.get()
-            try:
-                photos = flickr.photos.search(
-                    text='cat',
-                    license='1,2,3,4,5,6',
-                    per_page=str(images_to_fetch),
-                    page=page + 1
-                )
-            except FlickrError as e:
-                logger.error(f"Flickr API Error: {e}")
-                return
 
-            total_images = len(photos['photos']['photo'])
+    print(f"Starting download... Number of images to download: {number_of_images}")
 
-            with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
-                for i, photo in enumerate(photos['photos']['photo']):
-                    try:
-                        url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
-                        response = requests.get(url)
-                        if response.status_code != 200:
-                            logger.warning(f"Failed to download image from URL: {url}")
-                            continue
+    for page in range(1, pages_needed + 1):
+        images_to_fetch = min(remaining_images, images_per_page)
+        try:
+            photos = flickr.photos.search(
+                text='cat',
+                license='1,2,3,4,5,6',
+                per_page=str(images_to_fetch),
+                page=page
+            )
+        except FlickrError as e:
+            logger.error(f"Flickr API Error: {e}")
+            print(f"Flickr API Error: {e}")
+            return
 
-                        url_file.write(f"Serial Number: {serial_number}, URL: {url}\n")
+        total_images = len(photos['photos']['photo'])
+        print(f"Total images in this batch: {total_images}")
 
-                        with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
-                            file.write(response.content)
-                            serial_number += 1
+        with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
+            for i, photo in enumerate(photos['photos']['photo']):
+                try:
+                    url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
+                    response = requests.get(url)
+                    if response.status_code != 200:
+                        logger.warning(f"Failed to download image from URL: {url}")
+                        continue
 
-                        queue.put(number_of_images - (page * images_per_page + i + 1))
-                        remaining_images -= 1
+                    url_file.write(f"Serial Number: {serial_number}, URL: {url}\n")
 
-                        if serial_number >= 100:  # Add download limit of 100 images
-                            logger.info("Download limit of 100 images reached.")
-                            queue.put(-1)
-                            return
+                    with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
+                        file.write(response.content)
+                        serial_number += 1
 
-                    except requests.exceptions.RequestException as e:
-                        logger.error(f"Network Error: {e}")
+                    queue.put(number_of_images - (page * images_per_page + i + 1))
+                    remaining_images -= 1
 
-        logger.info("Download finished!")
-        queue.put(-1)
+                    if serial_number >= 100:  # Add download limit of 100 images
+                        logger.info("Download limit of 100 images reached.")
+                        queue.put(-1)
+                        return
+
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"Network Error: {e}")
+
+    logger.info("Download finished!")
+    queue.put(-1)
 
 
 def check_queue(queue):
@@ -107,6 +127,7 @@ def check_queue(queue):
             num_images_label.config(text="")
     except Empty:
         root.after(100, check_queue, queue)
+
 
 def get_starting_serial_number():
     global folder_selected
@@ -124,7 +145,6 @@ def get_starting_serial_number():
                     pass
 
     return last_serial_number + 1
-
 
 
 root = tk.Tk()
