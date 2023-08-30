@@ -29,11 +29,14 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(messag
 logger.addHandler(file_handler)
 
 # Load Environment Variables
-dotenv_path = "C:/Users/Matthew/Desktop/Cat-Image-Downloader-V1/.env"  # Fill in the path to your .env file
+dotenv_path = ""  # Fill in the path to your .env file
 load_dotenv(dotenv_path)
 FLICKR_API_KEY = str(os.getenv('FLICKR_API_KEY'))
 FLICKR_API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
 flickr = FlickrAPI(FLICKR_API_KEY, FLICKR_API_SECRET, format='parsed-json')
+
+def clear_entry(event):
+    event.widget.delete(0, tk.END)
 
 def select_folder():
     global folder_selected
@@ -71,7 +74,7 @@ def start_download_thread():
     thread.start()
 
 def start_download():
-    global folder_selected, serial_number, download_queue, search_entry
+    global folder_selected, serial_number, download_queue, search_entry, countdown_label
     if not folder_selected:
         messagebox.showerror("Error", "Please select a folder.")
         return
@@ -82,6 +85,7 @@ def start_download():
     number_of_images = int(images_entry.get())
     progress_bar["maximum"] = number_of_images
     download_queue.queue.clear()
+    countdown_label["text"] = f"Images Remaining: {number_of_images}"
 
     # Fetch URLs and populate download queue
     try:
@@ -109,7 +113,7 @@ def start_download():
     root.after(100, check_queue, gui_queue)
 
 def download_worker():
-    global download_queue, serial_number, lock, gui_queue
+    global download_queue, serial_number, lock, gui_queue, countdown_label
 
     while True:
         url = download_queue.get()
@@ -123,15 +127,17 @@ def download_worker():
                     gui_queue.put(1)
                     serial_number += 1
         except Exception as e:
-            logger.error(f"Error downloading image from {url}: {e}")
+            logger.error(f"Error: {e}")
         finally:
             download_queue.task_done()
 
 def check_queue(queue):
     try:
-        item = queue.get_nowait()
-        if progress_bar["value"] < progress_bar["maximum"]:
-            progress_bar["value"] += item
+        while True:
+            item = queue.get_nowait()
+            if progress_bar["value"] + item <= progress_bar["maximum"]:
+                progress_bar["value"] += item
+                countdown_label["text"] = f"Images Remaining: {int(progress_bar['maximum'] - progress_bar['value'])}"
     except Empty:
         pass
     root.after(100, check_queue, queue)
@@ -145,10 +151,12 @@ select_button.pack(pady=10)
 
 search_entry = tk.Entry(root, width=30)
 search_entry.insert(0, "Enter the item to search")
+search_entry.bind("<FocusIn>", clear_entry)
 search_entry.pack(pady=5)
 
 images_entry = tk.Entry(root, width=30)
 images_entry.insert(0, "Enter the number of images")
+images_entry.bind("<FocusIn>", clear_entry)
 images_entry.pack(pady=5)
 
 download_button = tk.Button(root, text="Start Download", command=start_download_thread)
