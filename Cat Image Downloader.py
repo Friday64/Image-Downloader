@@ -29,7 +29,7 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(messag
 logger.addHandler(file_handler)
 
 # Load Environment Variables
-dotenv_path = "C:\Users\Matthew\Desktop\Cat-Image-Downloader-V1"  # Fill in the path to your .env file
+dotenv_path = "C:/Users/Matthew/Desktop/Cat-Image-Downloader-V1"  # Fill in the path to your .env file
 load_dotenv(dotenv_path)
 FLICKR_API_KEY = str(os.getenv('FLICKR_API_KEY'))
 FLICKR_API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
