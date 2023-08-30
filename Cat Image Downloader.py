@@ -3,7 +3,7 @@ import json
 import logging
 import requests
 from queue import Queue, Empty
-from threading import Thread
+from threading import Thread, Lock
 from flickrapi import FlickrAPI, FlickrError
 from dotenv import find_dotenv, load_dotenv
 import tkinter as tk
@@ -15,9 +15,11 @@ images_entry = None
 search_entry = None
 folder_selected = ""
 serial_number = 0
-queue = Queue()
+download_queue = Queue()
+gui_queue = Queue()
 countdown_label = None
 download_button = None
+lock = Lock()
 
 # Initialize Logging
 logger = logging.getLogger(__name__)
@@ -69,19 +71,43 @@ def start_download_thread():
     thread.start()
 
 def start_download():
-    global folder_selected, serial_number, progress_bar, queue, search_entry
+    global folder_selected, serial_number, download_queue, search_entry
     if not folder_selected:
         messagebox.showerror("Error", "Please select a folder.")
         return
 
     search_item = search_entry.get()
-        
+
     serial_number = get_starting_serial_number()
     number_of_images = int(images_entry.get())
     progress_bar["maximum"] = number_of_images
-    
-    # Rest of the logic to download images stays the same
-    # Just change the 'text' parameter in flickr.photos.search to the value of search_item
+
+    for _ in range(5):  # Five worker threads
+        t = Thread(target=download_worker)
+        t.daemon = True
+        t.start()
+
+    # Code to populate download_queue goes here
+
+# Function to download image, will be used by multiple threads
+def download_worker():
+    global download_queue, serial_number, lock, gui_queue
+
+    while True:
+        url = download_queue.get()
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                with lock:
+                    log_to_json_file(serial_number, url, f'image_{serial_number}.jpg')
+                    with open(os.path.join(folder_selected, f'image_{serial_number}.jpg'), 'wb') as file:
+                        file.write(response.content)
+                    gui_queue.put(1)
+                    serial_number += 1
+        except Exception as e:
+            logger.error(f"Error downloading image from {url}: {e}")
+        finally:
+            download_queue.task_done()
 
 # Initialize Tkinter
 root = tk.Tk()
