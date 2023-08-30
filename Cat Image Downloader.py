@@ -28,8 +28,8 @@ file_handler = logging.FileHandler('image_downloader.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
 logger.addHandler(file_handler)
 
-# Load Environment Variables from .env file
-dotenv_path = ""  # Fill in the path to your .env file here
+# Load Environment Variables
+dotenv_path = ""  # Fill in the path to your .env file
 load_dotenv(dotenv_path)
 FLICKR_API_KEY = str(os.getenv('FLICKR_API_KEY'))
 FLICKR_API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
@@ -81,15 +81,33 @@ def start_download():
     serial_number = get_starting_serial_number()
     number_of_images = int(images_entry.get())
     progress_bar["maximum"] = number_of_images
+    download_queue.queue.clear()
 
-    for _ in range(5):  # Five worker threads
+    # Fetch URLs and populate download queue
+    try:
+        photos = flickr.photos.search(
+            text=search_item,
+            license='1,2,3,4,5,6',
+            per_page=str(number_of_images)
+        )
+    except FlickrError as e:
+        logger.error(f"Flickr API Error: {e}")
+        print(f"Flickr API Error: {e}")
+        return
+
+    for photo in photos['photos']['photo']:
+        url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
+        download_queue.put(url)
+
+    # Start download worker threads
+    for _ in range(5):
         t = Thread(target=download_worker)
         t.daemon = True
         t.start()
 
-    # Code to populate download_queue goes here
+    # Start GUI update loop
+    root.after(100, check_queue, gui_queue)
 
-# Function to download image, will be used by multiple threads
 def download_worker():
     global download_queue, serial_number, lock, gui_queue
 
@@ -108,6 +126,15 @@ def download_worker():
             logger.error(f"Error downloading image from {url}: {e}")
         finally:
             download_queue.task_done()
+
+def check_queue(queue):
+    try:
+        item = queue.get_nowait()
+        if progress_bar["value"] < progress_bar["maximum"]:
+            progress_bar["value"] += item
+    except Empty:
+        pass
+    root.after(100, check_queue, queue)
 
 # Initialize Tkinter
 root = tk.Tk()
