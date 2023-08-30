@@ -1,16 +1,20 @@
 import os
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import flickrapi
-from flickrapi import FlickrAPI, FlickrError
+from flickrapi import FlickrError
 import requests
 import logging
 import tkinter as tk
 from tkinter import filedialog
-import dotenv
 import queue
 from queue import Queue, Empty
 from dotenv import find_dotenv, load_dotenv
+from threading import Thread
 
+progress_bar = None
+images_entry = None
+folder_selected = ""
+num_images_label = None
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -50,10 +54,41 @@ def select_folder():
     global folder_selected
     folder_selected = filedialog.askdirectory()
 
+def get_starting_serial_number():
+    global folder_selected  # Declare folder_selected as global
+    url_file_path = os.path.join(folder_selected, 'image_urls.txt')
+    last_serial_number = 0
+
+    if os.path.exists(url_file_path):
+        with open(url_file_path, 'r') as url_file:
+            lines = url_file.readlines()
+            if lines:
+                last_line = lines[-1]
+                try:
+                    last_serial_number = int(last_line.split(",")[0].split(":")[1].strip())
+                except ValueError:
+                    pass
+
+    return last_serial_number + 1
+
+def start_download_thread():
+    thread = Thread(target=start_download)
+    thread.start()
+
+
 
 def start_download():
-    global folder_selected, serial_number
+    global folder_selected, serial_number, progress_bar  # Add progress_bar here
+    
+    if not folder_selected:
+        messagebox.showerror("Error", "Please select a folder.")
+        return
 
+    serial_number = get_starting_serial_number()
+    number_of_images = int(images_entry.get())
+    progress_bar["maximum"] = number_of_images  # Set the maximum value for the progress bar
+
+    
     if not folder_selected:
         messagebox.showerror("Error", "Please select a folder.")
         return
@@ -146,23 +181,26 @@ def get_starting_serial_number():
 
     return last_serial_number + 1
 
-
 root = tk.Tk()
 root.title('Cat Images Downloader')
 
 select_button = tk.Button(root, text="Select Folder", command=select_folder)
 select_button.pack(pady=10)
 
+# Initialize images_entry
 images_entry = tk.Entry(root)
 images_entry.pack(pady=5)
 
-num_images_label = tk.Label(root, text="")
-num_images_label.pack()
+# Initialize Progress Bar
+progress_bar = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
+progress_bar.pack(pady=10)
 
-download_button = tk.Button(root, text="Start Download", command=start_download)
+download_button = tk.Button(root, text="Start Download", command=start_download_thread)
 download_button.pack(pady=10)
 
 countdown_label = tk.Label(root, text="")
 countdown_label.pack()
 
 root.mainloop()
+
+
