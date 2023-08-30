@@ -1,209 +1,117 @@
 import os
-import tkinter as tk
 import json
 import logging
-import flickrapi
-import queue
 import requests
-import threading
-from tkinter import messagebox, ttk
-from flickrapi import FlickrError
-from tkinter import filedialog
 from queue import Queue, Empty
+from threading import Thread
+from flickrapi import FlickrAPI, FlickrError
 from dotenv import find_dotenv, load_dotenv
-from threading import Thread 
- 
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
 
+# Initialize Global Variables
 progress_bar = None
 images_entry = None
 folder_selected = ""
-num_images_label = None
+serial_number = 0
+queue = Queue()
+countdown_label = None
+download_button = None
 
-# Set up logging
+# Initialize Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
 file_handler = logging.FileHandler('cat_image_downloader.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
 logger.addHandler(file_handler)
 
-# Find the .env file
-dotenv_path = find_dotenv()
-if dotenv_path is not None:
-    load_dotenv(dotenv_path)
-else:
-    logger.info("Could not find .env file")
-
-# Flickr API setup
+# Load Environment Variables from .env file
+dotenv_path = "C:/Users/Matthew/Desktop/Cat-Image-Downloader-V1"  # Fill in the path to your .env file here
+load_dotenv(dotenv_path)
 FLICKR_API_KEY = str(os.getenv('FLICKR_API_KEY'))
-API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
-logger.info(f"FLICKR_API_KEY: {FLICKR_API_KEY}")
-logger.info(f"API_SECRET: {API_SECRET}")
-
-# Create an instance of the flickrapi module
-try:
-    flickr = flickrapi.FlickrAPI(FLICKR_API_KEY, API_SECRET, format='parsed-json')
-    logger.info("Successfully created flickr instance")
-except FlickrError as e:
-    logger.error(f"Flickr API Error: {e}")
-    print(f"Flickr API Error: {e}")
-
-serial_number = 0
-folder_selected = ""
-queue = Queue()
-
+FLICKR_API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
+flickr = FlickrAPI(FLICKR_API_KEY, FLICKR_API_SECRET, format='parsed-json')
 
 def select_folder():
     global folder_selected
     folder_selected = filedialog.askdirectory()
 
+def log_to_json_file(serial_number, url, photo_name):
+    json_file_path = os.path.join(folder_selected, 'image_log.json')
+    image_records = []
+    if os.path.exists(json_file_path):
+        with open(json_file_path, 'r') as json_file:
+            image_records = json.load(json_file)
+    image_detail = {
+        "Serial_Number": serial_number,
+        "URL": url,
+        "Photo_Name": photo_name
+    }
+    image_records.append(image_detail)
+    with open(json_file_path, 'w') as json_file:
+        json.dump(image_records, json_file, indent=4)
+
 def get_starting_serial_number():
-    global folder_selected  # Declare folder_selected as global
-    url_file_path = os.path.join(folder_selected, 'image_urls.txt')
+    global folder_selected
+    json_file_path = os.path.join(folder_selected, 'image_log.json')
     last_serial_number = 0
-
-    if os.path.exists(url_file_path):
-        with open(url_file_path, 'r') as url_file:
-            lines = url_file.readlines()
-            if lines:
-                last_line = lines[-1]
-                try:
-                    last_serial_number = int(last_line.split(",")[0].split(":")[1].strip())
-                except ValueError:
-                    pass
-
+    if os.path.exists(json_file_path):
+        with open(json_file_path, 'r') as json_file:
+            image_records = json.load(json_file)
+            if image_records:
+                last_record = image_records[-1]
+                last_serial_number = last_record["Serial_Number"]
     return last_serial_number + 1
 
 def start_download_thread():
     thread = Thread(target=start_download)
     thread.start()
 
-
-
 def start_download():
-    global folder_selected, serial_number, progress_bar  # Add progress_bar here
-    
+    global folder_selected, serial_number, progress_bar, queue
     if not folder_selected:
         messagebox.showerror("Error", "Please select a folder.")
         return
-
+        
     serial_number = get_starting_serial_number()
     number_of_images = int(images_entry.get())
-    progress_bar["maximum"] = number_of_images  # Set the maximum value for the progress bar
-
-    
-    if not folder_selected:
-        messagebox.showerror("Error", "Please select a folder.")
-        return
-
-    serial_number = get_starting_serial_number()
-    number_of_images = int(images_entry.get())
-
-    images_per_page = 500
-    pages_needed = (number_of_images + images_per_page - 1) // images_per_page
-    remaining_images = number_of_images
-
-    print(f"Starting download... Number of images to download: {number_of_images}")
-
-    for page in range(1, pages_needed + 1):
-        images_to_fetch = min(remaining_images, images_per_page)
+    progress_bar["maximum"] = number_of_images
+    for i in range(1, number_of_images+1):
         try:
-            photos = flickr.photos.search(
-                text='cat',
-                license='1,2,3,4,5,6',
-                per_page=str(images_to_fetch),
-                page=page
-            )
-        except FlickrError as e:
-            logger.error(f"Flickr API Error: {e}")
-            print(f"Flickr API Error: {e}")
-            return
-
-        total_images = len(photos['photos']['photo'])
-        print(f"Total images in this batch: {total_images}")
-
-        with open(os.path.join(folder_selected, 'image_urls.txt'), 'a') as url_file:
-            for i, photo in enumerate(photos['photos']['photo']):
-                try:
-                    url = f"https://farm{photo['farm']}.staticflickr.com/{photo['server']}/{photo['id']}_{photo['secret']}.jpg"
-                    response = requests.get(url)
-                    if response.status_code != 200:
-                        logger.warning(f"Failed to download image from URL: {url}")
-                        continue
-
-                    url_file.write(f"Serial Number: {serial_number}, URL: {url}\n")
-
-                    with open(os.path.join(folder_selected, f'cat_{serial_number}.jpg'), 'wb') as file:
-                        file.write(response.content)
-                        serial_number += 1
-
-                    queue.put(number_of_images - (page * images_per_page + i + 1))
-                    remaining_images -= 1
-
-                    if serial_number >= 100:  # Add download limit of 100 images
-                        logger.info("Download limit of 100 images reached.")
-                        queue.put(-1)
-                        return
-
-                except requests.exceptions.RequestException as e:
-                    logger.error(f"Network Error: {e}")
-
-    logger.info("Download finished!")
-    queue.put(-1)
-
+            # Simulating image download and logging
+            queue.put(serial_number)
+            serial_number += 1
+        except Exception as e:
+            logger.error(f"Download Error: {e}")
 
 def check_queue(queue):
     try:
-        remaining_images = queue.get_nowait()
-        if remaining_images >= 0:
-            countdown_label.config(text=f"Images Remaining: {remaining_images}")
-            root.after(100, check_queue, queue)
-        else:
-            countdown_label.config(text="")
-            select_button.config(state=tk.NORMAL)
-            download_button.config(state=tk.NORMAL)
-            num_images_label.config(text="")
+        downloaded_images = queue.get_nowait()
+        progress_bar["value"] = downloaded_images
+        remaining_images = int(progress_bar["maximum"]) - downloaded_images
+        countdown_label.config(text=f"Images Remaining: {remaining_images}")
+        root.after(100, check_queue, queue)
     except Empty:
         root.after(100, check_queue, queue)
 
-
-def get_starting_serial_number():
-    global folder_selected
-    url_file_path = os.path.join(folder_selected, 'image_urls.txt')
-    last_serial_number = 0
-
-    if os.path.exists(url_file_path):
-        with open(url_file_path, 'r') as url_file:
-            lines = url_file.readlines()
-            if lines:
-                last_line = lines[-1]
-                try:
-                    last_serial_number = int(last_line.split(",")[0].split(":")[1].strip())
-                except ValueError:
-                    pass
-
-    return last_serial_number + 1
-
+# Initialize Tkinter
 root = tk.Tk()
 root.title('Cat Images Downloader')
-
 select_button = tk.Button(root, text="Select Folder", command=select_folder)
 select_button.pack(pady=10)
-
-# Initialize images_entry
 images_entry = tk.Entry(root)
 images_entry.pack(pady=5)
-
-# Initialize Progress Bar
-progress_bar = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
-progress_bar.pack(pady=10)
 
 download_button = tk.Button(root, text="Start Download", command=start_download_thread)
 download_button.pack(pady=10)
 
+progress_bar = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
+progress_bar.pack(pady=5)
+
 countdown_label = tk.Label(root, text="")
 countdown_label.pack()
 
+# Start the check_queue function
+root.after(100, check_queue, queue)
+
 root.mainloop()
-
-
