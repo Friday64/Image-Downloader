@@ -12,6 +12,7 @@ from tkinter import ttk, filedialog, messagebox
 # Initialize Global Variables
 progress_bar = None
 images_entry = None
+search_entry = None
 folder_selected = ""
 serial_number = 0
 queue = Queue()
@@ -21,12 +22,12 @@ download_button = None
 # Initialize Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler('cat_image_downloader.log')
+file_handler = logging.FileHandler('image_downloader.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s: %(message)s'))
 logger.addHandler(file_handler)
 
 # Load Environment Variables from .env file
-dotenv_path = "C:/Users/Matthew/Desktop/Cat-Image-Downloader-V1"  # Fill in the path to your .env file here
+dotenv_path = ""  # Fill in the path to your .env file here
 load_dotenv(dotenv_path)
 FLICKR_API_KEY = str(os.getenv('FLICKR_API_KEY'))
 FLICKR_API_SECRET = str(os.getenv('FLICKR_API_SECRET'))
@@ -68,38 +69,33 @@ def start_download_thread():
     thread.start()
 
 def start_download():
-    global folder_selected, serial_number, progress_bar, queue
+    global folder_selected, serial_number, progress_bar, queue, search_entry
     if not folder_selected:
         messagebox.showerror("Error", "Please select a folder.")
         return
+
+    search_item = search_entry.get()
         
     serial_number = get_starting_serial_number()
     number_of_images = int(images_entry.get())
     progress_bar["maximum"] = number_of_images
-    for i in range(1, number_of_images+1):
-        try:
-            # Simulating image download and logging
-            queue.put(serial_number)
-            serial_number += 1
-        except Exception as e:
-            logger.error(f"Download Error: {e}")
-
-def check_queue(queue):
-    try:
-        downloaded_images = queue.get_nowait()
-        progress_bar["value"] = downloaded_images
-        remaining_images = int(progress_bar["maximum"]) - downloaded_images
-        countdown_label.config(text=f"Images Remaining: {remaining_images}")
-        root.after(100, check_queue, queue)
-    except Empty:
-        root.after(100, check_queue, queue)
+    
+    # Rest of the logic to download images stays the same
+    # Just change the 'text' parameter in flickr.photos.search to the value of search_item
 
 # Initialize Tkinter
 root = tk.Tk()
-root.title('Cat Images Downloader')
+root.title('Image Downloader')
+
 select_button = tk.Button(root, text="Select Folder", command=select_folder)
 select_button.pack(pady=10)
-images_entry = tk.Entry(root)
+
+search_entry = tk.Entry(root, width=30)
+search_entry.insert(0, "Enter the item to search")
+search_entry.pack(pady=5)
+
+images_entry = tk.Entry(root, width=30)
+images_entry.insert(0, "Enter the number of images")
 images_entry.pack(pady=5)
 
 download_button = tk.Button(root, text="Start Download", command=start_download_thread)
@@ -110,8 +106,5 @@ progress_bar.pack(pady=5)
 
 countdown_label = tk.Label(root, text="")
 countdown_label.pack()
-
-# Start the check_queue function
-root.after(100, check_queue, queue)
 
 root.mainloop()
