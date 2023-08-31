@@ -113,23 +113,33 @@ def start_download():
     root.after(100, check_queue, gui_queue)
 
 def download_worker():
-    global download_queue, serial_number, lock, gui_queue, countdown_label
+    global download_queue, serial_number, lock, gui_queue
 
     while True:
         url = download_queue.get()
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                with lock:
-                    log_to_json_file(serial_number, url, f'image_{serial_number}.jpg')
-                    with open(os.path.join(folder_selected, f'image_{serial_number}.jpg'), 'wb') as file:
-                        file.write(response.content)
-                    gui_queue.put(1)
-                    serial_number += 1
-        except Exception as e:
-            logger.error(f"Error: {e}")
-        finally:
-            download_queue.task_done()
+        retries = 3  # Number of retries
+
+        # Retry mechanism
+        for i in range(retries):
+            try:
+                # Attempt to download the image
+                response = requests.get(url)
+                if response.status_code == 200:
+                    with lock:
+                        # Log the download and save the image
+                        log_to_json_file(serial_number, url, f'image_{serial_number}.jpg')
+                        with open(os.path.join(folder_selected, f'image_{serial_number}.jpg'), 'wb') as file:
+                            file.write(response.content)
+                        gui_queue.put(1)
+                        serial_number += 1
+                    break  # Exit the retry loop if download is successful
+            except Exception as e:
+                print(f"Error: {e}. Retrying ({i+1}/{retries})...")
+                if i == retries - 1:
+                    print("Max retries reached. Stopping script.")
+                    return  # Stop the worker thread if max retries reached
+            finally:
+                download_queue.task_done()
 
 def check_queue(queue):
     try:
@@ -146,26 +156,37 @@ def check_queue(queue):
 root = tk.Tk()
 root.title('Image Downloader')
 
-select_button = tk.Button(root, text="Select Folder", command=select_folder)
-select_button.pack(pady=10)
+# UI enhancements: using padding and labels
+frame = ttk.Frame(root, padding="10")
+frame.pack(fill="both", expand=True)
 
-search_entry = tk.Entry(root, width=30)
+# UI for selecting folder
+select_button = ttk.Button(frame, text="Select Folder", command=select_folder)
+select_button.grid(row=0, column=0, pady=10)
+
+# UI for entering search query
+search_entry = ttk.Entry(frame, width=30)
 search_entry.insert(0, "Enter the item to search")
 search_entry.bind("<FocusIn>", clear_entry)
-search_entry.pack(pady=5)
+search_entry.grid(row=1, column=0, pady=5)
 
-images_entry = tk.Entry(root, width=30)
+# UI for specifying the number of images
+images_entry = ttk.Entry(frame, width=30)
 images_entry.insert(0, "Enter the number of images")
 images_entry.bind("<FocusIn>", clear_entry)
-images_entry.pack(pady=5)
+images_entry.grid(row=2, column=0, pady=5)
 
-download_button = tk.Button(root, text="Start Download", command=start_download_thread)
-download_button.pack(pady=10)
+# UI for starting the download
+download_button = ttk.Button(frame, text="Start Download", command=start_download_thread)
+download_button.grid(row=3, column=0, pady=10)
 
-progress_bar = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
-progress_bar.pack(pady=5)
+# UI for the progress bar
+progress_bar = ttk.Progressbar(frame, orient="horizontal", length=300, mode="determinate")
+progress_bar.grid(row=4, column=0, pady=5)
 
-countdown_label = tk.Label(root, text="")
-countdown_label.pack()
+# UI for the remaining images label
+countdown_label = ttk.Label(frame, text="")
+countdown_label.grid(row=5, column=0)
 
+# Start the Tkinter event loop
 root.mainloop()
