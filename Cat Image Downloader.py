@@ -9,6 +9,7 @@ from dotenv import find_dotenv, load_dotenv
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+
 # Initialize Global Variables
 progress_bar = None
 images_entry = None
@@ -162,6 +163,10 @@ root.title('Image Downloader')
 frame = ttk.Frame(root, padding="10")
 frame.pack(fill="both", expand=True)
 
+# UI for selecting folder
+select_button = ttk.Button(frame, text="Select Folder", command=select_folder)
+select_button.grid(row=0, column=0, pady=10)
+
 # Add license selection Combobox
 license_types = ["All", "Public Domain", "CC0", "CC BY", "CC BY-SA", "CC BY-ND", "CC BY-NC", "CC BY-NC-SA", "CC BY-NC-ND"]
 license_combobox = ttk.Combobox(frame, values=license_types)
@@ -169,10 +174,6 @@ license_combobox.current(0)  # Default selection
 license_combobox.grid(row=0, column=0, pady=5)
 license_label = ttk.Label(frame, text="Select License:")
 license_label.grid(row=0, column=1, pady=5)
-
-# UI for selecting folder
-select_button = ttk.Button(frame, text="Select Folder", command=select_folder)
-select_button.grid(row=0, column=0, pady=10)
 
 # UI for entering search query
 search_entry = ttk.Entry(frame, width=30)
