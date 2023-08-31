@@ -160,10 +160,18 @@ def check_queue(queue):
             item = queue.get_nowait()
             if progress_bar["value"] + item <= progress_bar["maximum"]:
                 progress_bar["value"] += item
-                countdown_label["text"] = f"Images Remaining: {int(progress_bar['maximum'] - progress_bar['value'])}"
+                remaining_images = int(progress_bar['maximum'] - progress_bar['value'])
+                countdown_label["text"] = f"Images Remaining: {remaining_images}"
+
+                # Reset the progress bar and remaining images when download is complete
+                if remaining_images == 0:
+                    progress_bar["value"] = 0
+                    countdown_label["text"] = "Download complete. Progress bar reset."
+                    
     except Empty:
         pass
     root.after(100, check_queue, queue)
+   
 
 
 
