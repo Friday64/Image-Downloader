@@ -8,7 +8,9 @@ from flickrapi import FlickrAPI, FlickrError
 from dotenv import find_dotenv, load_dotenv
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-
+from concurrent.futures import ThreadPoolExecutor
+import time
+from time import sleep
 
 # Initialize Global Variables
 progress_bar = None
@@ -21,6 +23,7 @@ gui_queue = Queue()
 countdown_label = None
 download_button = None
 lock = Lock()
+failed_urls = []
 
 # Initialize Logging
 logger = logging.getLogger(__name__)
@@ -60,6 +63,11 @@ def log_to_json_file(serial_number, url, photo_name):
 
 def get_starting_serial_number():
     global folder_selected
+    last_serial_number = 0
+    try:
+        return int(last_serial_number) + 1
+    except ValueError:
+        print("Error: last_serial_number is not a valid integer.")
     json_file_path = os.path.join(folder_selected, 'image_log.json')
     last_serial_number = 0
     if os.path.exists(json_file_path):
@@ -112,35 +120,39 @@ def start_download():
 
     # Start GUI update loop
     root.after(100, check_queue, gui_queue)
-
 def download_worker():
     global download_queue, serial_number, lock, gui_queue
-
     while True:
         url = download_queue.get()
+        
         retries = 3  # Number of retries
-
-        # Retry mechanism
+        delay = 3   # Delay between retries in seconds
+        success = False  # Flag to indicate if the download was successful
+        
         for i in range(retries):
             try:
-                # Attempt to download the image
-                response = requests.get(url)
+                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
+                response = requests.get(url, timeout=10, headers=headers)
+                
                 if response.status_code == 200:
                     with lock:
-                        # Log the download and save the image
-                        log_to_json_file(serial_number, url, f'image_{serial_number}.jpg')
+                        log_to_json_file(str(serial_number), url, f'image_{serial_number}.jpg')
                         with open(os.path.join(folder_selected, f'image_{serial_number}.jpg'), 'wb') as file:
                             file.write(response.content)
                         gui_queue.put(1)
                         serial_number += 1
-                    break  # Exit the retry loop if download is successful
-            except Exception as e:
-                print(f"Error: {e}. Retrying ({i+1}/{retries})...")
-                if i == retries - 1:
-                    print("Max retries reached. Stopping script.")
-                    return  # Stop the worker thread if max retries reached
-            finally:
-                download_queue.task_done()
+                    success = True
+                    break
+            except requests.exceptions.RequestException as e:
+                print(f"An error occurred: {e}. Retrying {i+1}/{retries}")
+                sleep(delay)  # Adding delay between retries
+                #delay *= 2  # Exponential back-off
+        
+        if not success:
+            print("Max retries reached. Skipping this URL.")
+            failed_urls.append(url)  # Append failed URL for later inspection
+            
+        download_queue.task_done()
 
 def check_queue(queue):
     try:
@@ -160,44 +172,46 @@ root = tk.Tk()
 root.title('Image Downloader')
 
 # UI enhancements: using padding and labels
-frame = ttk.Frame(root, padding="10")
+frame = ttk.Frame(root, padding="20")
 frame.pack(fill="both", expand=True)
 
-# UI for selecting folder
-select_button = ttk.Button(frame, text="Select Folder", command=select_folder)
-select_button.grid(row=0, column=0, pady=10)
-
-# Add license selection Combobox
+# UI for license selection Combobox
+license_label = ttk.Label(frame, text="Select License:")
+license_label.grid(row=0, column=0, pady=1)  # Increased pady
 license_types = ["All", "Public Domain", "CC0", "CC BY", "CC BY-SA", "CC BY-ND", "CC BY-NC", "CC BY-NC-SA", "CC BY-NC-ND"]
 license_combobox = ttk.Combobox(frame, values=license_types)
-license_combobox.current(0)  # Default selection
-license_combobox.grid(row=0, column=0, pady=5)
-license_label = ttk.Label(frame, text="Select License:")
-license_label.grid(row=0, column=1, pady=5)
+license_combobox.current()  # Default selection
+license_combobox.grid(row=1, column=0, pady=5)  # Increased pady
+
+
+# Add Select Folder Button
+select_folder_button = ttk.Button(frame, text="Select Folder", command=select_folder)
+select_folder_button.grid(row=3, column=1, columnspan=1, pady=10)  # Increased pady
+
 
 # UI for entering search query
 search_entry = ttk.Entry(frame, width=30)
 search_entry.insert(0, "Enter the item to search")
 search_entry.bind("<FocusIn>", clear_entry)
-search_entry.grid(row=1, column=0, pady=5)
+search_entry.grid(row=3, column=0, pady=5)
 
 # UI for specifying the number of images
 images_entry = ttk.Entry(frame, width=30)
 images_entry.insert(0, "Enter the number of images")
 images_entry.bind("<FocusIn>", clear_entry)
-images_entry.grid(row=2, column=0, pady=5)
+images_entry.grid(row=4, column=0, pady=5)
 
 # UI for starting the download
 download_button = ttk.Button(frame, text="Start Download", command=start_download_thread)
-download_button.grid(row=3, column=0, pady=10)
+download_button.grid(row=4, column=1, pady=10)
 
 # UI for the progress bar
 progress_bar = ttk.Progressbar(frame, orient="horizontal", length=300, mode="determinate")
-progress_bar.grid(row=4, column=0, pady=5)
+progress_bar.grid(row=6, column=0, pady=5)
 
 # UI for the remaining images label
 countdown_label = ttk.Label(frame, text="")
-countdown_label.grid(row=5, column=0)
+countdown_label.grid(row=7, column=0)
 
 # Start the Tkinter event loop
 root.mainloop()
