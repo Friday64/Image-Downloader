@@ -46,20 +46,27 @@ def select_folder():
     global folder_selected
     folder_selected = filedialog.askdirectory()
 
+# Modified log_to_json_file to add better error handling
 def log_to_json_file(serial_number, url, photo_name):
-    json_file_path = os.path.join(folder_selected, 'image_log.json')
-    image_records = []
-    if os.path.exists(json_file_path):
-        with open(json_file_path, 'r') as json_file:
-            image_records = json.load(json_file)
-    image_detail = {
-        "Serial_Number": serial_number,
-        "URL": url,
-        "Photo_Name": photo_name
-    }
-    image_records.append(image_detail)
-    with open(json_file_path, 'w') as json_file:
-        json.dump(image_records, json_file, indent=4)
+    try:
+        json_file_path = os.path.join(folder_selected, 'image_log.json')
+        if not json_file_path:
+            raise ValueError("No folder selected")
+        image_records = []
+        if os.path.exists(json_file_path):
+            with open(json_file_path, 'r') as json_file:
+                image_records = json.load(json_file)
+        image_detail = {
+            "Serial_Number": serial_number,
+            "URL": url,
+            "Photo_Name": photo_name
+        }
+        image_records.append(image_detail)
+        with open(json_file_path, 'w') as json_file:
+            json.dump(image_records, json_file, indent=4)
+    except Exception as e:
+        logger.error(f"Error writing to JSON file: {e}")
+
 
 def get_starting_serial_number():
     global folder_selected
