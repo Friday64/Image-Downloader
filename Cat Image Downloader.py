@@ -149,6 +149,7 @@ def download_worker():
                         gui_queue.put(1)
                         serial_number += 1
                     success = True
+                    response.close()
                     break
             except requests.exceptions.RequestException as e:
                 print(f"An error occurred: {e}. Retrying {i+1}/{retries}")
