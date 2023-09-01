@@ -188,21 +188,25 @@ frame.pack(fill="both", expand=True)
 ttk.Label(frame, text="Select License:").grid(row=0, column=0, pady=10)
 license_types = ["All", "Public Domain", "CC0", "CC BY", "CC BY-SA", "CC BY-ND", "CC BY-NC", "CC BY-NC-SA", "CC BY-NC-ND"]
 license_combobox = ttk.Combobox(frame, values=license_types)
-license_combobox.grid(row=0, column=1, pady=10)
+license_combobox.grid(row=0, column=0, pady=10)
 
 # UI for specifying the number of images
-ttk.Label(frame, text="Number of Images:").grid(row=1, column=0, pady=10)
+ttk.Label(frame, text="Number of Images:").grid(row=2, column=0, pady=10)
 images_entry = ttk.Entry(frame, width=30)
 images_entry.insert(0, "Enter the number of images")
 images_entry.bind("<FocusIn>", clear_entry)
-images_entry.grid(row=1, column=1, pady=10)
+images_entry.grid(row=2, column=1, pady=10)
+
+# UI for folder selection
+select_folder_button = ttk.Button(frame, text="Select Folder", command=select_folder)
+select_folder_button.grid(row=3, column=0, pady=10)
 
 # UI for entering search query
 ttk.Label(frame, text="Search Query:").grid(row=2, column=0, pady=10)
 search_entry = ttk.Entry(frame, width=30)
 search_entry.insert(0, "Enter the item to search")
 search_entry.bind("<FocusIn>", clear_entry)
-search_entry.grid(row=2, column=1, pady=10)
+search_entry.grid(row=2, column=0, pady=10)
 
 # UI for starting the download
 download_button = ttk.Button(frame, text="Start Download", command=start_download_thread)
@@ -216,9 +220,7 @@ progress_bar.grid(row=4, column=0, columnspan=2, pady=10)
 countdown_label = ttk.Label(frame, text="")
 countdown_label.grid(row=5, column=0, columnspan=2, pady=10)
 
-# UI for folder selection
-select_folder_button = ttk.Button(frame, text="Select Folder", command=select_folder)
-select_folder_button.grid(row=6, column=1, pady=10)
+
 
 # Start the Tkinter event loop
 root.mainloop()
