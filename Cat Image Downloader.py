@@ -132,8 +132,8 @@ def download_worker():
     while True:
         url = download_queue.get()
         
-        retries = 3  # Number of retries
-        delay = 3   # Delay between retries in seconds
+        retries = 1  # Number of retries
+        delay = 2   # Delay between retries in seconds
         success = False  # Flag to indicate if the download was successful
         
         for i in range(retries):
