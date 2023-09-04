@@ -112,7 +112,7 @@ def download_images_from_flickr():
         messagebox.showinfo("No Images Found",
                             "No images found for the provided search term.")
 
-    # Reset progress bar and serial number
+    # Reset progress bar 
     progress_bar['value'] = 0
     countdown_label.config(text="Images Remaining: 0")
 
