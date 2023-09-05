@@ -26,7 +26,7 @@ root.title("Flickr Image Downloader")
 def validate_api_keys():
     try:
         flickr = FlickrAPI(FLICKR_API_KEY, FLICKR_API_SECRET, format='parsed-json')
-        flickr.photos.getInfo(photo_id='1')
+        flickr.test.echo()  # Use test.echo to validate API keys.
     except FlickrError as e:
         if '100' in str(e):
             messagebox.showerror("Invalid API Key", "The API key format is invalid.")
