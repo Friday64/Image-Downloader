@@ -136,6 +136,7 @@ def download_image():
                 file_name = create_file_name(photo)
                 save_image(response.content, file_name)
                 save_metadata(search_term, photo, file_name)
+            gui_queue.put(None)
             download_queue.task_done()
 
 def create_file_name(photo):
