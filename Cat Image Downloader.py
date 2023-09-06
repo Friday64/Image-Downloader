@@ -162,7 +162,7 @@ def check_gui_queue():
             if remaining == 0:
                 countdown_label.config(text="All images downloaded!")
     root.after(100, check_gui_queue)
-
+    
 # UI Setup
 search_label = ttk.Label(root, text="Search Term:")
 search_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
