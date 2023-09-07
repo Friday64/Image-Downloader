@@ -104,13 +104,13 @@ def download_images_from_flickr():
     countdown_label.config(text="Images Remaining: 0")
 
     flickr = FlickrAPI(FLICKR_API_KEY, FLICKR_API_SECRET, format='parsed-json')
-
     photos = flickr.photos.search(
         text=search_term, per_page=num_of_images, page=1, sort='relevance',
         license='1,2,3,4,5,6',  # Creative Commons licenses
-        content_type=1  # Only photos
+        content_type=1,  # Only photos
+        extras='owner_name,license'  # Attempt to fetch owner_name and license info
     )
-
+    
     if photos and photos['photos']['photo']:
         photos_list = photos['photos']['photo']
 
