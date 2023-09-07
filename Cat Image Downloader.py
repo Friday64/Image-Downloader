@@ -67,15 +67,19 @@ def save_metadata(search_term, photo, file_name):
     metadata_path = os.path.join(folder_selected, "metadata.json")
     
     with metadata_lock:
-        if os.path.exists(metadata_path):
-            with open(metadata_path, 'r') as file:
-                existing_data = json.load(file)
-            existing_data.append(metadata)
-            with open(metadata_path, 'w') as file:
-                json.dump(existing_data, file, indent=4)
-        else:
-            with open(metadata_path, 'w') as file:
-                json.dump([metadata], file, indent=4)
+        try:
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as file:
+                    existing_data = json.load(file)
+                existing_data.append(metadata)
+                with open(metadata_path, 'w') as file:
+                    json.dump(existing_data, file, indent=4)
+            else:
+                with open(metadata_path, 'w') as file:
+                    json.dump([metadata], file, indent=4)
+            print(f"Metadata for {file_name} saved successfully")
+        except Exception as e:
+            print(f"An error occurred while saving metadata for {file_name}: {e}")
 
 def download_images_from_flickr():
     search_term = search_entry.get()
