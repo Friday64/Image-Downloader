@@ -57,11 +57,13 @@ def set_folder():
 metadata_lock = threading.Lock()
 
 def save_metadata(search_term, photo, file_name):
+    print(f"Debug: Photo Data: {photo}")  # Debug line to print photo data to the console
+    
     metadata = {
         "url": f"https://www.flickr.com/photos/{photo['owner']}/{photo['id']}",
         "name": file_name,
-        "creator": photo.get('ownername', ''),
-        "license": photo.get('license', ''),
+        "creator": photo.get('ownername', 'Unknown Creator'),  # Default value added
+        "license": photo.get('license', 'Unknown License'),  # Default value added
     }
 
     metadata_path = os.path.join(folder_selected, "metadata.json")
