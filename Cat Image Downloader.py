@@ -187,37 +187,40 @@ def check_gui_queue():
     
 # UI Setup
 license_label = ttk.Label(root, text="License:")
-license_label.grid(column=0, row=3, sticky=tk.W, padx=5, pady=5)
+# UI Setup
+license_label = ttk.Label(root, text="License:")
+license_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
 
 license_menu = ttk.Combobox(root, textvariable=selected_license, values=[option[0] for option in license_options])
-license_menu.grid(column=1, row=3, sticky=tk.W, padx=5, pady=5)
+license_menu.grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
 
 search_label = ttk.Label(root, text="Search Term:")
-search_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+search_label.grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
 
 search_entry = ttk.Entry(root, width=40)
-search_entry.grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
+search_entry.grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
 
 images_label = ttk.Label(root, text="Number of Images:")
-images_label.grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
+images_label.grid(column=0, row=2, sticky=tk.W, padx=5, pady=5)
 
 images_entry = ttk.Entry(root, width=40)
-images_entry.grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
+images_entry.grid(column=1, row=2, sticky=tk.W, padx=5, pady=5)
 
 folder_btn = ttk.Button(root, text="Select Folder", command=set_folder)
-folder_btn.grid(column=0, row=2, sticky=tk.W, padx=5, pady=5)
+folder_btn.grid(column=0, row=3, sticky=tk.W, padx=5, pady=5)
 
 folder_label = ttk.Label(root, text="")
-folder_label.grid(column=1, row=2, sticky=tk.W, padx=5, pady=5)
+folder_label.grid(column=1, row=3, sticky=tk.W, padx=5, pady=5)
 
 download_btn = ttk.Button(root, text="Download", command=download_images_from_flickr)
-download_btn.grid(column=1, row=3, sticky=tk.W, padx=5, pady=20)
+download_btn.grid(column=0, row=4, columnspan=2, padx=5, pady=20)
 
 progress_bar = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
-progress_bar.grid(column=1, row=4, sticky=tk.W, padx=5, pady=5)
+progress_bar.grid(column=0, row=5, columnspan=2, sticky=tk.W+tk.E, padx=5, pady=5)
 
 countdown_label = ttk.Label(root, text="")
-countdown_label.grid(column=1, row=5, sticky=tk.W, padx=5, pady=5)
+countdown_label.grid(column=0, row=6, columnspan=2, sticky=tk.W, padx=5, pady=5)
+
 
 root.after(100, check_gui_queue)
 
