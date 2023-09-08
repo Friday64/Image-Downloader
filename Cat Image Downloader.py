@@ -23,6 +23,20 @@ if not FLICKR_API_KEY or not FLICKR_API_SECRET:
 root = tk.Tk()
 root.title("Flickr Image Downloader")
 
+license_options = [
+    ("All", "1,2,3,4,5,6,7"),
+    ("Attribution-NonCommercial-ShareAlike License", "1"),
+    ("Attribution-NonCommercial License", "2"),
+    ("Attribution-NonCommercial-NoDerivs License", "3"),
+    ("Attribution License", "4"),
+    ("Attribution-ShareAlike License", "5"),
+    ("Attribution-NoDerivs License", "6"),
+    ("No known copyright restrictions", "7"),
+]
+
+selected_license = tk.StringVar(value=license_options[0][1])
+
+
 def validate_api_keys():
     try:
         flickr = FlickrAPI(FLICKR_API_KEY, FLICKR_API_SECRET, format='parsed-json')
@@ -106,7 +120,7 @@ def download_images_from_flickr():
     flickr = FlickrAPI(FLICKR_API_KEY, FLICKR_API_SECRET, format='parsed-json')
     photos = flickr.photos.search(
         text=search_term, per_page=num_of_images, page=1, sort='relevance',
-        license='1,2,3,4,5,6',  # Creative Commons licenses
+        license=selected_license.get(),  # Get the selected license from the dropdown menu
         content_type=1,  # Only photos
         extras='owner_name,license'  # Attempt to fetch owner_name and license info
     )
@@ -172,6 +186,12 @@ def check_gui_queue():
     root.after(100, check_gui_queue)
     
 # UI Setup
+license_label = ttk.Label(root, text="License:")
+license_label.grid(column=0, row=3, sticky=tk.W, padx=5, pady=5)
+
+license_menu = ttk.Combobox(root, textvariable=selected_license, values=[option[0] for option in license_options])
+license_menu.grid(column=1, row=3, sticky=tk.W, padx=5, pady=5)
+
 search_label = ttk.Label(root, text="Search Term:")
 search_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
 
