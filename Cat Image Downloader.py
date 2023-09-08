@@ -140,13 +140,14 @@ def download_image():
             response = requests.get(url)
             if response.status_code == 200:
                 file_name = create_file_name(search_term, photo)
+
                 save_image(response.content, file_name)
                 save_metadata(search_term, photo, file_name)
             gui_queue.put(None)
             download_queue.task_done()
 
 def create_file_name(search_term, photo):
-    timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    timestamp = datetime.now().strftime('%m_%d_%Y_%H_%M_%S')
     return f"{search_term}_{timestamp}_{photo['id']}.jpg"
 
 
