@@ -147,7 +147,7 @@ def download_image():
             download_queue.task_done()
 
 def create_file_name(search_term, photo):
-    timestamp = datetime.now().strftime('%m_%d_%Y_%H_%M_%S')
+    timestamp = datetime.now().strftime('%m_%d_%Y')
     return f"{search_term}_{timestamp}_{photo['id']}.jpg"
 
 
