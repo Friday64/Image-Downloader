@@ -60,7 +60,7 @@ def save_metadata(search_term, photo, file_name):
     metadata = {
         "url": f"https://www.flickr.com/photos/{photo['owner']}/{photo['id']}",
         "name": file_name,
-        "creator": photo.get('ownername', ''),
+        "creator": photo.get('owner', ''),
         "license": photo.get('license', ''),
     }
 
@@ -76,6 +76,7 @@ def save_metadata(search_term, photo, file_name):
         else:
             with open(metadata_path, 'w') as file:
                 json.dump([metadata], file, indent=4)
+
 
 def download_images_from_flickr():
     search_term = search_entry.get()
@@ -162,7 +163,7 @@ def check_gui_queue():
             if remaining == 0:
                 countdown_label.config(text="All images downloaded!")
     root.after(100, check_gui_queue)
-    
+
 # UI Setup
 search_label = ttk.Label(root, text="Search Term:")
 search_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
