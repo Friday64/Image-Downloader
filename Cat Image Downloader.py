@@ -10,6 +10,9 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import json
 
+root = tk.Tk()
+root.title("Flickr Image Downloader")
+
 # Specify your custom path here
 custom_path = 'C:/Users/Matthew/Desktop/Cat-Image-Downloader-V1/.env'
 load_dotenv(dotenv_path=custom_path)
@@ -33,8 +36,7 @@ FLICKR_API_SECRET = str(os.getenv('FLICKR_SECRET_API_KEY'))
 if not FLICKR_API_KEY or not FLICKR_API_SECRET:
     raise ValueError("API keys are not defined. Please check your .env file and the custom path.")
 
-root = tk.Tk()
-root.title("Flickr Image Downloader")
+
 
 def validate_api_keys():
     try:
