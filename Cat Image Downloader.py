@@ -14,6 +14,19 @@ import json
 custom_path = 'C:/Users/Matthew/Desktop/Cat-Image-Downloader-V1/.env'
 load_dotenv(dotenv_path=custom_path)
 
+license_options = [
+    ("All", "1,2,3,4,5,6,7"),
+    ("Attribution-NonCommercial-ShareAlike License", "1"),
+    ("Attribution-NonCommercial License", "2"),
+    ("Attribution-NonCommercial-NoDerivs License", "3"),
+    ("Attribution License", "4"),
+    ("Attribution-ShareAlike License", "5"),
+    ("Attribution-NoDerivs License", "6"),
+    ("No known copyright restrictions", "7"),
+]
+
+selected_license = tk.StringVar(value=license_options[0][1])
+
 FLICKR_API_KEY = str(os.getenv('FLICKR_PUBLIC_API_KEY'))
 FLICKR_API_SECRET = str(os.getenv('FLICKR_SECRET_API_KEY'))
 
@@ -102,7 +115,8 @@ def download_images_from_flickr():
 
     photos = flickr.photos.search(
         text=search_term, per_page=num_of_images, page=1, sort='relevance',
-        license='1,2,3,4,5,6',  # Creative Commons licenses
+        license=selected_license.get(),  # Get the selected license from the dropdown menu
+
         content_type=1  # Only photos
     )
 
@@ -134,15 +148,16 @@ def download_image():
         else:
             response = requests.get(url)
             if response.status_code == 200:
-                file_name = create_file_name(search_term, photo))
+                file_name = create_file_name(search_term, photo)
                 save_image(response.content, file_name)
                 save_metadata(search_term, photo, file_name)
-                gui_queue.put(None)
-                download_queue.task_done()
+            gui_queue.put(None)
+            download_queue.task_done()
 
 def create_file_name(search_term, photo):
-    timestamp = datetime.now().strftime('%Y_%m_%d')
-    return f"{search_term}_{timestamp}_{photo['id']}.jpg
+    timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    return f"{search_term}_{timestamp}_{photo['id']}.jpg"
+
 def save_image(content, file_name):
     if folder_selected:
         image_path = os.path.join(folder_selected, file_name)
@@ -164,32 +179,39 @@ def check_gui_queue():
     root.after(100, check_gui_queue)
 
 # UI Setup
+license_label = ttk.Label(root, text="License:")
+license_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+
+license_menu = ttk.Combobox(root, textvariable=selected_license, values=[option[0] for option in license_options])
+license_menu.grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
+
 search_label = ttk.Label(root, text="Search Term:")
-search_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+search_label.grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
 
 search_entry = ttk.Entry(root, width=40)
-search_entry.grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
+search_entry.grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
 
 images_label = ttk.Label(root, text="Number of Images:")
-images_label.grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
+images_label.grid(column=0, row=2, sticky=tk.W, padx=5, pady=5)
 
 images_entry = ttk.Entry(root, width=40)
-images_entry.grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
+images_entry.grid(column=1, row=2, sticky=tk.W, padx=5, pady=5)
 
 folder_btn = ttk.Button(root, text="Select Folder", command=set_folder)
-folder_btn.grid(column=0, row=2, sticky=tk.W, padx=5, pady=5)
+folder_btn.grid(column=0, row=3, sticky=tk.W, padx=5, pady=5)
 
 folder_label = ttk.Label(root, text="")
-folder_label.grid(column=1, row=2, sticky=tk.W, padx=5, pady=5)
+folder_label.grid(column=1, row=3, sticky=tk.W, padx=5, pady=5)
 
 download_btn = ttk.Button(root, text="Download", command=download_images_from_flickr)
-download_btn.grid(column=1, row=3, sticky=tk.W, padx=5, pady=20)
+download_btn.grid(column=0, row=4, columnspan=2, padx=5, pady=20)
 
 progress_bar = ttk.Progressbar(root, orient='horizontal', length=300, mode='determinate')
-progress_bar.grid(column=1, row=4, sticky=tk.W, padx=5, pady=5)
+progress_bar.grid(column=0, row=5, columnspan=2, sticky=tk.W+tk.E, padx=5, pady=5)
 
 countdown_label = ttk.Label(root, text="")
-countdown_label.grid(column=1, row=5, sticky=tk.W, padx=5, pady=5)
+countdown_label.grid(column=0, row=6, columnspan=2, sticky=tk.W, padx=5, pady=5)
+
 
 root.after(100, check_gui_queue)
 
