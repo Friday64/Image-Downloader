@@ -134,16 +134,15 @@ def download_image():
         else:
             response = requests.get(url)
             if response.status_code == 200:
-                file_name = create_file_name(photo)
+                file_name = create_file_name(search_term, photo))
                 save_image(response.content, file_name)
                 save_metadata(search_term, photo, file_name)
-            gui_queue.put(None)
-            download_queue.task_done()
+                gui_queue.put(None)
+                download_queue.task_done()
 
-def create_file_name(photo):
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    return f"{timestamp}_{photo['id']}.jpg"
-
+def create_file_name(search_term, photo):
+    timestamp = datetime.now().strftime('%Y_%m_%d')
+    return f"{search_term}_{timestamp}_{photo['id']}.jpg
 def save_image(content, file_name):
     if folder_selected:
         image_path = os.path.join(folder_selected, file_name)
