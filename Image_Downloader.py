@@ -14,7 +14,7 @@ root = tk.Tk()
 root.title("Flickr Image Downloader")
 
 # Specify your custom path here
-custom_path = 'C:/Users/Matthew/Desktop/Cat-Image-Downloader-V1/.env'
+custom_path = ''
 load_dotenv(dotenv_path=custom_path)
 
 license_options = [
